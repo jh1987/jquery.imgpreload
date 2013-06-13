@@ -2,9 +2,9 @@
 /*
 
 Copyright (c) 2009 Dimas Begunoff, http://www.farinspace.com
-
+Modified 2013 by Jonas Hillebrecht http://bklynsoap.com
 https://github.com/farinspace/jquery.imgpreload
-
+https://github.com/jh1987/jquery.imgpreload
 Licensed under the MIT license
 http://en.wikipedia.org/wiki/MIT_License
 
@@ -45,7 +45,8 @@ if ('undefined' != typeof jQuery)
 			if ('string' == typeof imgs) { imgs = new Array(imgs); }
 
 			var loaded = new Array();
-
+			var check = [];
+			var x=0;
 			$.each(imgs,function(i,elem)
 			{
 				var img = new Image();
@@ -66,17 +67,34 @@ if ('undefined' != typeof jQuery)
 					loaded.push(img_obj);
 
 					$.data(img_obj, 'loaded', ('error'==e.type)?false:true);
-					
-					if (settings.each instanceof Function) { settings.each.call(img_obj); }
+					if(!settings.async){
+						check[i]=img_obj;
+					}else{
+						if (settings.each instanceof Function) { settings.each.call(img_obj); }
 
-					// http://jsperf.com/length-in-a-variable
-					if (loaded.length>=imgs.length && settings.all instanceof Function) { settings.all.call(loaded); }
-
+						// http://jsperf.com/length-in-a-variable
+						if (loaded.length>=imgs.length && settings.all instanceof Function) { settings.all.call(loaded); }
+					}
 					$(this).unbind('load error');
 				});
 
 				img.src = url;
 			});
+			if(!settings.async){
+				setTimeout(loadNext, 0);
+			}
+			function loadNext() {
+				if(typeof check[x]!=="undefined"){
+					if (settings.each instanceof Function) { settings.each.call(check[x]); }
+					x++;
+				}
+				if(x == imgs.length){
+					if (loaded.length>=imgs.length && settings.all instanceof Function) { settings.all.call(loaded); }
+				}
+				if(x < imgs.length){
+			        setTimeout(loadNext, settings.refresh);
+			    }
+			}
 		};
 
 		$.fn.imgpreload = function(settings)
@@ -90,6 +108,8 @@ if ('undefined' != typeof jQuery)
 		{
 			each: null // callback invoked when each image in a group loads
 			, all: null // callback invoked when when the entire group of images has loaded
+			, async:true //variable if asynchronous load, if false image will be loaded in the correct order
+			, refresh:100 //refresh rate for synchronous loading
 		};
 
 	})(jQuery);
